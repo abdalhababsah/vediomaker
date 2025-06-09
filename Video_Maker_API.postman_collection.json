@@ -1,0 +1,198 @@
+{
+	"info": {
+		"_postman_id": "video-maker-api-collection",
+		"name": "Video Maker API",
+		"description": "API for creating videos with old wise man voice and subtitles",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Health Check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5001/health",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5001",
+					"path": [
+						"health"
+					]
+				},
+				"description": "Check if the API is running and healthy"
+			}
+		},
+		{
+			"name": "Create Video - Wise Voice",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "script",
+							"value": "In ancient times, wisdom was passed down through stories. Listen carefully, for knowledge is the greatest treasure that one can possess.",
+							"type": "text",
+							"description": "Text script for the old wise man voice"
+						},
+						{
+							"key": "voice_style",
+							"value": "wise",
+							"type": "text",
+							"description": "Voice style: normal, wise, or elder"
+						},
+						{
+							"key": "background_image",
+							"type": "file",
+							"description": "Upload a background image (JPG, PNG, etc.)"
+						}
+					]
+				},
+				"url": {
+					"raw": "http://localhost:5001/create-video",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5001",
+					"path": [
+						"create-video"
+					]
+				},
+				"description": "Create a video with old wise man voice and subtitles"
+			}
+		},
+		{
+			"name": "Create Video - Elder Voice",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "script",
+							"value": "Back in my day, we understood the true value of patience and perseverance. Let me share with you the secrets of a lifetime well-lived.",
+							"type": "text",
+							"description": "Text script for the ancient elder voice"
+						},
+						{
+							"key": "voice_style",
+							"value": "elder",
+							"type": "text",
+							"description": "Voice style: normal, wise, or elder"
+						},
+						{
+							"key": "background_image",
+							"type": "file",
+							"description": "Upload a background image (JPG, PNG, etc.)"
+						}
+					]
+				},
+				"url": {
+					"raw": "http://localhost:5001/create-video",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5001",
+					"path": [
+						"create-video"
+					]
+				},
+				"description": "Create a video with ancient elder voice and subtitles"
+			}
+		},
+		{
+			"name": "Create Video - Normal Voice",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "script",
+							"value": "Welcome to our professional presentation. This video demonstrates the standard voice option for business and educational content.",
+							"type": "text",
+							"description": "Text script for normal professional voice"
+						},
+						{
+							"key": "voice_style",
+							"value": "normal",
+							"type": "text",
+							"description": "Voice style: normal, wise, or elder"
+						},
+						{
+							"key": "background_image",
+							"type": "file",
+							"description": "Upload a background image (JPG, PNG, etc.)"
+						}
+					]
+				},
+				"url": {
+					"raw": "http://localhost:5001/create-video",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5001",
+					"path": [
+						"create-video"
+					]
+				},
+				"description": "Create a video with normal professional voice and subtitles"
+			}
+		},
+		{
+			"name": "List All Videos",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5001/list-videos",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5001",
+					"path": [
+						"list-videos"
+					]
+				},
+				"description": "Get a list of all generated videos"
+			}
+		},
+		{
+			"name": "Download Video",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5001/download/{{session_id}}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5001",
+					"path": [
+						"download",
+						"{{session_id}}"
+					]
+				},
+				"description": "Download a specific video by session ID. Replace {{session_id}} with actual session ID from create-video response."
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:5001",
+			"type": "string"
+		}
+	]
+} 

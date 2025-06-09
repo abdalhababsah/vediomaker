@@ -1,0 +1,19 @@
+# Web framework
+Flask==2.3.3
+
+# Text-to-Speech
+edge-tts==6.1.9
+elevenlabs==2.3.0
+
+# Audio processing
+pydub==0.25.1
+
+# Speech recognition
+SpeechRecognition==3.10.0
+
+# Video processing
+moviepy==1.0.3
+
+# Utility
+requests==2.32.3
+python-dotenv==1.0.0

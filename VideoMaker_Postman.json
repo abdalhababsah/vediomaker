@@ -1,0 +1,129 @@
+{
+  "info": {
+    "name": "Video Maker API",
+    "description": "A collection for testing the Video Maker API with different voice providers",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:5001/health",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["health"]
+        },
+        "description": "Check if the API is running"
+      }
+    },
+    {
+      "name": "Create Video (Free Voice)",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "http://localhost:5001/create-video",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["create-video"]
+        },
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "script",
+              "value": "This is a test video using the free Edge TTS voice provider. The voice sounds clear and professional.",
+              "type": "text"
+            },
+            {
+              "key": "background_image",
+              "type": "file",
+              "src": ""
+            },
+            {
+              "key": "voice_style",
+              "value": "elder",
+              "type": "text"
+            },
+            {
+              "key": "voice_provider",
+              "value": "free",
+              "type": "text"
+            }
+          ]
+        },
+        "description": "Create a video using the free Edge TTS voice provider"
+      }
+    },
+    {
+      "name": "Create Video (Eleven Labs Voice)",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "http://localhost:5001/create-video",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["create-video"]
+        },
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "script",
+              "value": "This is a test video using the premium Eleven Labs voice provider. The voice sounds more natural and expressive.",
+              "type": "text"
+            },
+            {
+              "key": "background_image",
+              "type": "file",
+              "src": ""
+            },
+            {
+              "key": "voice_style",
+              "value": "wise",
+              "type": "text"
+            },
+            {
+              "key": "voice_provider",
+              "value": "11",
+              "type": "text"
+            }
+          ]
+        },
+        "description": "Create a video using the premium Eleven Labs voice provider"
+      }
+    },
+    {
+      "name": "List Videos",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:5001/list-videos",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["list-videos"]
+        },
+        "description": "List all generated videos"
+      }
+    },
+    {
+      "name": "Download Video",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:5001/download/{{session_id}}",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["download", "{{session_id}}"]
+        },
+        "description": "Download a generated video (replace {{session_id}} with an actual session ID)"
+      }
+    }
+  ]
+} 
