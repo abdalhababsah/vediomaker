@@ -118,7 +118,7 @@ def create_video():
 def download_video(session_id):
     """Download the generated video"""
     try:
-        video_path = os.path.join(OUTPUT_FOLDER, f"{session_id}_final_video.mp4")
+        video_path = os.path.join(OUTPUT_FOLDER, f"{session_id}_final.mp4")
         
         if not os.path.exists(video_path):
             return jsonify({"error": "Video not found"}), 404
@@ -141,7 +141,7 @@ def list_videos():
         videos = []
         for filename in os.listdir(OUTPUT_FOLDER):
             if filename.endswith('.mp4'):
-                session_id = filename.replace('_final_video.mp4', '')
+                session_id = filename.replace('_final.mp4', '')
                 file_path = os.path.join(OUTPUT_FOLDER, filename)
                 file_stats = os.stat(file_path)
                 

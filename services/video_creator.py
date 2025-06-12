@@ -1,4 +1,4 @@
-from moviepy import VideoFileClip, ImageClip, TextClip, ColorClip, CompositeVideoClip, AudioFileClip
+from moviepy.editor import VideoFileClip, ImageClip, TextClip, ColorClip, CompositeVideoClip, AudioFileClip
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 import os
@@ -17,13 +17,11 @@ def create_video_with_transcript(background_path, audio_path, transcript_data, o
             raise Exception(f"Background image not found: {background_path}")
         if not os.path.exists(audio_path):
             raise Exception(f"Audio file not found: {audio_path}")
-        if not transcript_data or not transcript_data.get('segments'):
-            raise Exception("Invalid transcript data provided")
         
-        # Load audio clip
+        # Load audio and get duration
         audio_clip = AudioFileClip(audio_path)
         duration = audio_clip.duration
-        logger.info(f"Audio duration: {duration} seconds")
+        logger.info(f"Audio duration: {duration:.2f} seconds")
         
         if duration <= 0:
             raise Exception("Invalid audio duration")
@@ -36,20 +34,18 @@ def create_video_with_transcript(background_path, audio_path, transcript_data, o
         subtitle_clips = create_subtitle_clips_improved(transcript_data, background_clip.size, duration)
         logger.info(f"Created {len(subtitle_clips)} subtitle clips")
         
-        # Combine all elements
+        # Combine all clips
         if subtitle_clips:
             final_video = CompositeVideoClip([background_clip] + subtitle_clips)
-            logger.info("✅ Subtitles added to video")
         else:
-            final_video = background_clip
             logger.warning("⚠️  No subtitles added - using background only")
+            final_video = background_clip
         
         # Add audio
-        final_video = final_video.with_audio(audio_clip)
+        final_video = final_video.set_audio(audio_clip)
         
         # Generate output path
-        output_filename = f"{session_id}_final_video.mp4"
-        output_path = os.path.join(output_folder, output_filename)
+        output_path = os.path.join(output_folder, f"{session_id}_final.mp4")
         
         # Ensure output directory exists
         os.makedirs(output_folder, exist_ok=True)
@@ -67,23 +63,10 @@ def create_video_with_transcript(background_path, audio_path, transcript_data, o
             ffmpeg_params=['-crf', '23']
         )
         
-        # Clean up clips
-        audio_clip.close()
-        background_clip.close()
-        for clip in subtitle_clips:
-            if hasattr(clip, 'close'):
-                clip.close()
+        # Clean up
         final_video.close()
+        audio_clip.close()
         
-        # Verify output file was created
-        if not os.path.exists(output_path):
-            raise Exception("Video file was not created successfully")
-        
-        file_size = os.path.getsize(output_path)
-        if file_size == 0:
-            raise Exception("Created video file is empty")
-        
-        logger.info(f"Video created successfully: {output_path} ({file_size} bytes)")
         return output_path
         
     except Exception as e:
@@ -93,49 +76,21 @@ def create_video_with_transcript(background_path, audio_path, transcript_data, o
 def create_background_clip(background_path, duration):
     """Create background video clip using ORIGINAL image dimensions"""
     try:
-        # Get original image dimensions first
-        with Image.open(background_path) as img:
-            original_width, original_height = img.size
-            logger.info(f"Original image size: {original_width}x{original_height}")
+        # Load image and get original dimensions
+        img = Image.open(background_path)
+        width, height = img.size
+        logger.info(f"Original image size: {width}x{height}")
         
-        # Create ImageClip with original dimensions
-        img_clip = ImageClip(background_path)
-        
-        # Keep original dimensions - no resizing!
-        target_width, target_height = original_width, original_height
-        
-        # Only resize if image is extremely large (over 4K) for performance
-        if original_width > 3840 or original_height > 2160:
-            # Scale down while maintaining aspect ratio
-            scale = min(3840 / original_width, 2160 / original_height)
-            target_width = int(original_width * scale)
-            target_height = int(original_height * scale)
-            
-            img_clip = img_clip.resized((target_width, target_height))
-            logger.info(f"Scaled down large image to: {target_width}x{target_height}")
-        else:
-            # Use original dimensions
-            logger.info(f"Using original image dimensions: {target_width}x{target_height}")
-        
-        # Set duration
-        img_clip = img_clip.with_duration(duration)
-        
-        logger.info(f"Background clip created: {img_clip.size}, {duration}s")
-        return img_clip
+        # Create clip with original dimensions
+        logger.info(f"Using original image dimensions: {width}x{height}")
+        background_clip = ImageClip(background_path).set_duration(duration)
+        return background_clip
         
     except Exception as e:
         logger.error(f"Error creating background clip: {str(e)}")
-        # Fallback: try to get image dimensions for fallback
-        try:
-            with Image.open(background_path) as img:
-                width, height = img.size
-            fallback_clip = ColorClip(size=(width, height), color=(20, 20, 40), duration=duration)
-        except:
-            # Ultimate fallback
-            fallback_clip = ColorClip(size=(1920, 1080), color=(20, 20, 40), duration=duration)
-        
+        # Create fallback colored background
         logger.info("Created fallback colored background")
-        return fallback_clip
+        return ColorClip(size=(width, height), color=(0, 0, 0)).set_duration(duration)
 
 def create_subtitle_clips_improved(transcript_data, video_size, total_duration):
     """Create subtitle clips with improved handling"""
@@ -185,26 +140,77 @@ def create_subtitle_clips_improved(transcript_data, video_size, total_duration):
 def create_subtitle_clip_robust(text, start_time, duration, video_size):
     """Create subtitle with multiple fallback methods"""
     methods = [
-        create_subtitle_image_clip,
         create_textclip_caption,
         create_textclip_simple,
+        create_subtitle_image_clip,
         create_fallback_subtitle
     ]
     
     for method in methods:
         try:
-            if method == create_subtitle_image_clip:
-                clip = method(text, start_time, duration, video_size)
-            else:
-                clip = method(text, start_time, duration, video_size)
-            
+            clip = method(text, start_time, duration, video_size)
             if clip:
                 return clip
-                
         except Exception as e:
+            logger.warning(f"Method {method.__name__} failed: {str(e)}")
             continue
     
     return None
+
+def create_textclip_caption(text, start_time, duration, video_size):
+    """Create subtitle using TextClip caption method"""
+    try:
+        text = clean_text_for_display(text)
+        wrapped_text = wrap_text_for_subtitles(text, max_chars_per_line=50)
+        
+        # Adaptive font size
+        font_size = max(24, min(42, video_size[0] // 45))
+        
+        txt_clip = TextClip(
+            wrapped_text,
+            fontsize=font_size,
+            color='white',
+            stroke_color='black',
+            stroke_width=2,
+            method='caption',
+            size=(video_size[0] - 200, None),
+            align='center'
+        ).set_duration(duration)
+        
+        txt_clip = txt_clip.set_position(('center', video_size[1] - 200))
+        txt_clip = txt_clip.set_start(start_time)
+        
+        return txt_clip
+        
+    except Exception as e:
+        logger.warning(f"TextClip caption method failed: {str(e)}")
+        raise
+
+def create_textclip_simple(text, start_time, duration, video_size):
+    """Create subtitle using simple TextClip"""
+    try:
+        text = clean_text_for_display(text)
+        wrapped_text = wrap_text_for_subtitles(text, max_chars_per_line=40)
+        
+        # Adaptive font size
+        font_size = max(20, min(38, video_size[0] // 50))
+        
+        txt_clip = TextClip(
+            wrapped_text,
+            fontsize=font_size,
+            color='white',
+            stroke_color='black',
+            stroke_width=1
+        ).set_duration(duration)
+        
+        txt_clip = txt_clip.set_position(('center', video_size[1] - 150))
+        txt_clip = txt_clip.set_start(start_time)
+        
+        return txt_clip
+        
+    except Exception as e:
+        logger.warning(f"TextClip simple method failed: {str(e)}")
+        raise
 
 def create_subtitle_image_clip(text, start_time, duration, video_size, font_size=None):
     """Create subtitle using PIL image generation with adaptive font size"""
@@ -250,68 +256,14 @@ def create_subtitle_image_clip(text, start_time, duration, video_size, font_size
             y_offset += line_height
         
         img_array = np.array(img)
-        subtitle_img_clip = ImageClip(img_array, duration=duration, transparent=True)
-        subtitle_img_clip = subtitle_img_clip.with_position(('center', height - subtitle_height - 50))
-        subtitle_img_clip = subtitle_img_clip.with_start(start_time)
+        subtitle_img_clip = ImageClip(img_array).set_duration(duration)
+        subtitle_img_clip = subtitle_img_clip.set_position(('center', height - subtitle_height - 50))
+        subtitle_img_clip = subtitle_img_clip.set_start(start_time)
         
         return subtitle_img_clip
         
     except Exception as e:
-        raise
-
-def create_textclip_caption(text, start_time, duration, video_size):
-    """Create subtitle using TextClip caption method"""
-    try:
-        text = clean_text_for_display(text)
-        wrapped_text = wrap_text_for_subtitles(text, max_chars_per_line=50)
-        
-        # Adaptive font size
-        font_size = max(24, min(42, video_size[0] // 45))
-        
-        txt_clip = TextClip(
-            wrapped_text,
-            fontsize=font_size,
-            color='white',
-            stroke_color='black',
-            stroke_width=2,
-            method='caption',
-            size=(video_size[0] - 200, None),
-            align='center'
-        )
-        
-        txt_clip = txt_clip.with_position(('center', video_size[1] - 200))
-        txt_clip = txt_clip.with_start(start_time)
-        txt_clip = txt_clip.with_duration(duration)
-        
-        return txt_clip
-        
-    except Exception as e:
-        raise
-
-def create_textclip_simple(text, start_time, duration, video_size):
-    """Create subtitle using simple TextClip"""
-    try:
-        text = clean_text_for_display(text)
-        wrapped_text = wrap_text_for_subtitles(text, max_chars_per_line=40)
-        
-        # Adaptive font size
-        font_size = max(20, min(38, video_size[0] // 50))
-        
-        txt_clip = TextClip(
-            wrapped_text,
-            fontsize=font_size,
-            color='white',
-            stroke_color='black',
-            stroke_width=1
-        )
-        
-        txt_clip = txt_clip.with_position(('center', video_size[1] - 150))
-        txt_clip = txt_clip.with_start(start_time)
-        txt_clip = txt_clip.with_duration(duration)
-        
-        return txt_clip
-        
-    except Exception as e:
+        logger.warning(f"Subtitle image clip method failed: {str(e)}")
         raise
 
 def create_fallback_subtitle(text, start_time, duration, video_size):
@@ -327,7 +279,7 @@ def create_fallback_subtitle(text, start_time, duration, video_size):
             size=(bg_width, bg_height),
             color=(0, 0, 0),
             duration=duration
-        ).with_opacity(0.7)
+        ).set_opacity(0.7)
         
         # Adaptive font size
         font_size = max(18, min(32, video_size[0] // 60))
@@ -336,19 +288,20 @@ def create_fallback_subtitle(text, start_time, duration, video_size):
             wrapped_text,
             fontsize=font_size,
             color='white'
-        ).with_duration(duration)
+        ).set_duration(duration)
         
         subtitle_clip = CompositeVideoClip([
-            bg_clip.with_position('center'),
-            txt_clip.with_position('center')
-        ]).with_duration(duration)
+            bg_clip.set_position('center'),
+            txt_clip.set_position('center')
+        ]).set_duration(duration)
         
-        subtitle_clip = subtitle_clip.with_position(('center', video_size[1] - 120))
-        subtitle_clip = subtitle_clip.with_start(start_time)
+        subtitle_clip = subtitle_clip.set_position(('center', video_size[1] - 120))
+        subtitle_clip = subtitle_clip.set_start(start_time)
         
         return subtitle_clip
         
     except Exception as e:
+        logger.warning(f"Fallback subtitle method failed: {str(e)}")
         raise
 
 def get_best_available_font(font_size):
